@@ -6,6 +6,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
 
 # Rolling window function
 
@@ -48,39 +49,53 @@ dataset = scaler.fit_transform(dataset.reshape(-1, 1))
 # Train and test division
 train_size = int(len(dataset) * 0.67)
 test_size = len(dataset) - train_size
-train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
+train, test = dataset[0:train_size, :], dataset[train_size:len(dataset), :]
 print(len(train), len(test))
 
 # Creating features into X=t and Y=t+1
 look_back = 7
 trainX, trainY = create_dataset(train, look_back)
 testX, testY = create_dataset(test, look_back)
-trainX.shape
+print(trainX.shape)
 
 # Reshaping [batch, times, features]
 trainX = np.reshape(trainX, (trainX.shape[0], look_back, 1))
 testX = np.reshape(testX, (testX.shape[0], look_back, 1))
-trainX.shape
+print(trainX.shape)
 
-# Training model
+# Training model 1 (Vanilla RNN)
 initializer = keras.initializers.GlorotNormal(seed=1234)
-model = keras.models.Sequential()
-model.add(keras.layers.LSTM(32, input_shape=(look_back, 1), kernel_initializer=initializer))
-model.add(keras.layers.Dense(1))
-model.summary()
+model1 = keras.models.Sequential()
+model1.add(keras.layers.SimpleRNN(32, input_shape=(look_back, 1), kernel_initializer=initializer))
+model1.add(keras.layers.Dense(1))
+model1.summary()
+model1.compile(loss='mean_squared_error', optimizer='adam')
+model1.fit(trainX, trainY, epochs=20, batch_size=32)
 
-# Compiling model and training
-model.compile(loss='mean_squared_error', optimizer='adam')
-model.fit(trainX, trainY, epochs=20, batch_size=32)
+# Training model 2 (LSTM)
+initializer = keras.initializers.GlorotNormal(seed=1234)
+model2 = keras.models.Sequential()
+model2.add(keras.layers.LSTM(32, input_shape=(look_back, 1), kernel_initializer=initializer))
+model2.add(keras.layers.Dense(1))
+model2.summary()
+model2.compile(loss='mean_squared_error', optimizer='adam')
+model2.fit(trainX, trainY, epochs=20, batch_size=32)
 
 # Forecasting
-yhat = model.predict(testX)
+yhatRNN = model1.predict(testX)
+yhatLSTM = model2.predict(testX)
 
 # Decoding predictions
 testYDec = scaler.inverse_transform(testY.reshape(-1, 1))
-yhatDec = scaler.inverse_transform(yhat)
+yhatDecRNN = scaler.inverse_transform(yhatRNN)
+yhatDecLSTM = scaler.inverse_transform(yhatLSTM)
 
 # Plotting some predictions
 plt.plot(testYDec, color='orange', label='test data')
-plt.plot(yhatDec, color='blue', label='predicted data')
+plt.plot(yhatDecRNN, color='blue', label='predicted RNN')
+plt.plot(yhatDecLSTM, color='green', label='predicted LSTM')
 plt.legend(loc='upper left')
+
+# Evaluating with metrics
+mean_squared_error(testYDec, yhatDecRNN)
+mean_squared_error(testYDec, yhatDecLSTM)
