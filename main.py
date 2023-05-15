@@ -66,20 +66,28 @@ print(trainX.shape)
 # Training model 1 (Vanilla RNN)
 initializer = keras.initializers.GlorotNormal(seed=1234)
 model1 = keras.models.Sequential()
-model1.add(keras.layers.SimpleRNN(32, input_shape=(look_back, 1), kernel_initializer=initializer))
+model1.add(keras.layers.SimpleRNN(32, input_shape=(look_back, 1), kernel_initializer=initializer, return_sequences=True))
+model1.add(keras.layers.SimpleRNN(64))
 model1.add(keras.layers.Dense(1))
 model1.summary()
 model1.compile(loss='mean_squared_error', optimizer='adam')
-model1.fit(trainX, trainY, epochs=20, batch_size=32)
+history1 = model1.fit(trainX, trainY, epochs=20, batch_size=32)
 
 # Training model 2 (LSTM)
 initializer = keras.initializers.GlorotNormal(seed=1234)
 model2 = keras.models.Sequential()
-model2.add(keras.layers.LSTM(32, input_shape=(look_back, 1), kernel_initializer=initializer))
+model2.add(keras.layers.LSTM(32, input_shape=(look_back, 1), kernel_initializer=initializer, return_sequences=True))
+model2.add(keras.layers.LSTM(64))
 model2.add(keras.layers.Dense(1))
 model2.summary()
 model2.compile(loss='mean_squared_error', optimizer='adam')
-model2.fit(trainX, trainY, epochs=20, batch_size=32)
+history2 = model2.fit(trainX, trainY, epochs=20, batch_size=32)
+
+# Evaluating loss
+plt.plot(history1.history['loss'], color='teal', label='loss RNN')
+plt.plot(history2.history['loss'], color='orange', label='loss LSTM')
+plt.legend(loc='upper left')
+
 
 # Forecasting
 yhatRNN = model1.predict(testX)
